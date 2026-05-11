@@ -1,0 +1,5 @@
+# Namespace isolates all AI Customer Support resources from other workloads.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-customer-support

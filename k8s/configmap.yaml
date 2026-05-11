@@ -1,0 +1,20 @@
+# Shared non-secret configuration for application workloads.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: ai-customer-support
+data:
+  NODE_ENV: "production"
+  PORT: "4000"
+  CORS_ORIGIN: "http://localhost:3000"
+  FRONTEND_URL: "http://localhost:3000"
+  AI_SERVICE_URL: "http://ai-service:8000"
+  REDIS_URL: "redis://redis:6379"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_CLIENT_ID: "customer-support-backend"
+  KAFKA_TICKET_CREATED_TOPIC: "tickets.created"
+  KAFKA_TICKET_PROCESSED_TOPIC: "tickets.processed"
+  KAFKA_TICKET_RETRY_TOPIC: "tickets.retry"
+  KAFKA_TICKET_DEAD_LETTER_TOPIC: "tickets.dead-letter"
+  OPENAI_MODEL: "gpt-4o-mini"

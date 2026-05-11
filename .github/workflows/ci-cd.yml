@@ -1,0 +1,92 @@
+name: CI/CD
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test-and-docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Cache backend node_modules
+        uses: actions/cache@v4
+        with:
+          path: backend/node_modules
+          key: backend-node-${{ runner.os }}-${{ hashFiles('backend/package-lock.json') }}
+
+      - name: Cache frontend node_modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: frontend-node-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Prisma generate
+        working-directory: backend
+        run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/customer_support?schema=public
+          JWT_SECRET: ci-only-secret
+
+      - name: Backend lint if present
+        working-directory: backend
+        run: npm run lint --if-present
+
+      - name: Backend TypeScript build
+        working-directory: backend
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/customer_support?schema=public
+          JWT_SECRET: ci-only-secret
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend lint if present
+        working-directory: frontend
+        run: npm run lint --if-present
+
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ai-service/requirements.txt
+
+      - name: Install AI service dependencies
+        working-directory: ai-service
+        run: pip install -r requirements.txt
+
+      - name: AI service validation
+        working-directory: ai-service
+        run: python -m compileall app
+
+      - name: Build backend Docker image
+        run: docker build -t ai-customer-support-backend:ci ./backend
+
+      - name: Build frontend Docker image
+        run: docker build -t ai-customer-support-frontend:ci ./frontend
+
+      - name: Build AI service Docker image
+        run: docker build -t ai-customer-support-ai-service:ci ./ai-service
